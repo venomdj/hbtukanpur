@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HBTU Placement Dashboard 2024-25</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Syne', sans-serif;
+      background: #030712;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #030712; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 3px; }
+
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .glass {
+      background: rgba(10,18,35,0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .nav-blur {
+      background: rgba(3,7,18,0.92);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0,212,255,0.08);
+    }
+    .card-hover {
+      transition: transform 0.28s cubic-bezier(.22,.68,0,1.2), box-shadow 0.28s ease, border-color 0.28s ease;
+      cursor: default;
+    }
+    .card-hover:hover { transform: translateY(-5px); }
+
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 18px rgba(0,212,255,0.08); }
+      50%       { box-shadow: 0 0 36px rgba(0,212,255,0.22); }
+    }
+    .glow-pulse { animation: glowPulse 4s ease-in-out infinite; }
+
+    @keyframes ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker { animation: ticker 38s linear infinite; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .blink { animation: blink 1s step-end infinite; }
+
+    @keyframes shimmer {
+      0%   { background-position: -400% 0; }
+      100% { background-position: 400% 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, rgba(15,23,42,0.9) 25%, rgba(30,41,59,0.4) 50%, rgba(15,23,42,0.9) 75%);
+      background-size: 400% 100%;
+      animation: shimmer 1.6s ease infinite;
+      border-radius: 12px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(24px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.55s cubic-bezier(.22,.68,0,1.2) both; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+
+    @keyframes fillBar { from { width: 0; } }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+
+    input:focus, select:focus { outline: none; border-color: rgba(0,212,255,0.4) !important; box-shadow: 0 0 0 2px rgba(0,212,255,0.08); }
+    .chart-wrap { width: 100%; position: relative; }
+    .pdf-modal {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(3,7,18,0.97);
+      backdrop-filter: blur(16px);
+      display: flex; flex-direction: column;
+    }
+    .section { display: none; }
+    .section.active { display: block; }
+    .nav-btn {
+      padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: 'Syne', sans-serif;
+      background: transparent; color: #64748b;
+      border: 1px solid transparent; transition: all 0.2s;
+    }
+    .nav-btn.active, .nav-btn:hover {
+      background: rgba(0,212,255,0.1); color: #00d4ff;
+      border-color: rgba(0,212,255,0.22);
+    }
+    .filter-btn {
+      padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
+      background: rgba(10,18,35,0.8); border: 1px solid rgba(20,30,50,0.9); color: #475569;
+      transition: all 0.2s;
+    }
+    .filter-btn.active {
+      background: rgba(0,212,255,0.12); border-color: rgba(0,212,255,0.35); color: #00d4ff;
+    }
+    .drop-zone {
+      border: 2px dashed rgba(0,212,255,0.18); border-radius: 16px; padding: 42px 24px;
+      text-align: center; cursor: pointer; margin-bottom: 22px;
+      background: rgba(10,18,35,0.4); transition: all 0.3s;
+    }
+    .drop-zone.drag {
+      border-color: #00d4ff; background: rgba(0,212,255,0.04);
+      box-shadow: 0 0 40px rgba(0,212,255,0.12);
+    }
+    @media(max-width:700px){ .hidden-mobile{display:none!important} }
+    @media(min-width:701px){ .show-mobile{display:none!important} }
+    .counter { font-family: 'Space Mono', monospace; }
+    .stat-card { padding: 22px 20px; border-radius: 16px; position: relative; overflow: hidden; }
+    .branch-bar-fill { height: 100%; border-radius: 2px; width: 0; transition: width 1.4s cubic-bezier(0.22,0.68,0,1.2); }
+    .progress-bar-fill { height: 100%; border-radius: 4px; width: 0; transition: width 1.2s ease; }
+    .slide-in { opacity: 0; transform: translateX(-22px); transition: opacity 0.45s ease, transform 0.45s ease; }
+    .slide-in.visible { opacity: 1; transform: translateX(0); }
+    .fade-card { opacity: 0; transform: translateY(22px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .fade-card.visible { opacity: 1; transform: translateY(0); }
+    #loader {
+      position: fixed; inset: 0; background: #030712; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div id="loader">
+  <div style="width:64px;height:64px;border-radius:14px;margin-bottom:26px;background:linear-gradient(135deg,#00d4ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;font-family:'Space Mono',monospace;color:#000;box-shadow:0 0 48px rgba(0,212,255,0.4)">H</div>
+  <div style="font-family:'Space Mono',monospace;color:#00d4ff;font-size:12px;letter-spacing:3px;margin-bottom:24px">LOADING DASHBOARD<span class="blink">_</span></div>
+  <div style="width:220px;height:2px;background:rgba(20,30,50,0.9);border-radius:1px;overflow:hidden">
+    <div id="loader-bar" style="height:100%;background:linear-gradient(90deg,#00d4ff,#7c3aed);border-radius:1px;width:0;animation:fillBar 0.8s ease forwards"></div>
+  </div>
+</div>
+
+<div id="app" class="grid-bg" style="min-height:100vh;opacity:0;transition:opacity 0.4s">
+
+<!-- NAVBAR -->
+<nav class="nav-blur" style="position:fixed;top:0;left:0;right:0;z-index:100">
+  <div style="max-width:1260px;margin:0 auto;padding:0 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:62px">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="switchTab('overview')">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#00d4ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:17px;color:#000;box-shadow:0 0 24px rgba(0,212,255,0.35)">H</div>
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:13px;color:#00d4ff;letter-spacing:1.5px;line-height:1.1">HBTU</div>
+          <div style="font-size:9px;color:#334155;letter-spacing:2px;text-transform:uppercase">Placement Portal</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:2px" class="hidden-mobile" id="nav-links"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="padding:4px 12px;border-radius:20px;font-size:11px;font-family:'Space Mono',monospace;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:#00d4ff" class="hidden-mobile">BATCH 2024-25</div>
+        <button onclick="toggleMobileNav()" style="background:none;border:none;cursor:pointer;padding:6px" class="show-mobile">
+          <div id="hamburger" style="display:flex;flex-direction:column;gap:5px">
+            <div style="width:22px;height:2px;background:#00d4ff;border-radius:1px;transition:all 0.3s"></div>
+            <div style="width:22px;height:2px;background:#00d4ff;border-radius:1px;transition:all 0.3s"></div>
+            <div style="width:22px;height:2px;background:#00d4ff;border-radius:1px;transition:all 0.3s"></div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-nav" style="display:none;background:rgba(3,7,18,0.97);border-top:1px solid rgba(0,212,255,0.08);padding:12px 20px 16px"></div>
+</nav>
+
+<main style="max-width:1240px;margin:0 auto;padding:76px 18px 50px">
+
+  <!-- OVERVIEW -->
+  <div id="sec-overview" class="section active fade-up">
+    <div style="text-align:center;padding:60px 0 50px;position:relative">
+      <div class="orb" style="width:560px;height:240px;background:#00d4ff;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.06"></div>
+      <div style="font-size:10px;color:#00d4ff;letter-spacing:3px;text-transform:uppercase;font-family:'Space Mono',monospace;margin-bottom:16px">▸ PLACEMENT SEASON 2024-25 · OFFICIAL DATA <span class="blink" style="color:#34d399">●</span></div>
+      <h1 style="font-size:clamp(30px,6vw,70px);font-weight:800;line-height:1.05;margin-bottom:14px;background:linear-gradient(135deg,#f1f5f9 0%,#00d4ff 45%,#a78bfa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px">HBTU Placement<br>Dashboard 2024-25</h1>
+      <p style="font-size:15px;color:#475569;max-width:460px;margin:0 auto;line-height:1.7">Official placement analytics for Harcourt Butler Technical University, Kanpur — Batch 2024-25 · 602 total offers · 82 companies</p>
+      <div style="display:inline-flex;align-items:center;gap:8px;margin-top:22px;padding:6px 16px;border-radius:20px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2)">
+        <div style="width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399"></div>
+        <span style="font-size:11px;color:#34d399;font-family:'Space Mono',monospace">OFFICIAL DATA · SESSION 2024-25</span>
+      </div>
+    </div>
+
+    <div id="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:48px"></div>
+
+    <div style="margin-bottom:48px;border-top:1px solid rgba(0,212,255,0.06);border-bottom:1px solid rgba(0,212,255,0.06);padding:10px 0;overflow:hidden">
+      <div class="ticker" id="ticker-inner" style="display:flex;gap:32px;width:max-content"></div>
+    </div>
+
+    <div id="branch-mini-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"></div>
+  </div>
+
+  <!-- BRANCHES -->
+  <div id="sec-branches" class="section">
+    <div style="margin-bottom:36px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:26px">🎓</span>
+        <h2 style="font-size:clamp(22px,3vw,30px);font-weight:800;color:#f1f5f9;letter-spacing:-0.5px">Branch-wise Placements</h2>
+      </div>
+      <p style="font-size:13px;color:#475569;margin-left:36px">Department breakdown — Batch 2024-25</p>
+      <div style="width:52px;height:2px;background:linear-gradient(90deg,#00d4ff,transparent);margin-top:10px;margin-left:36px;border-radius:1px"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+      <input type="text" id="branch-search" placeholder="🔍  Search branch…" oninput="filterBranches()" style="flex:1;min-width:180px;padding:9px 15px;border-radius:10px;background:rgba(10,18,35,0.9);border:1px solid rgba(0,212,255,0.14);color:#e2e8f0;font-size:13px;transition:border-color 0.2s;font-family:'Syne',sans-serif">
+      <select id="branch-sort" onchange="filterBranches()" style="padding:9px 15px;border-radius:10px;background:rgba(10,18,35,0.9);border:1px solid rgba(0,212,255,0.14);color:#94a3b8;font-size:13px;cursor:pointer;font-family:'Syne',sans-serif">
+        <option value="placementPct">Sort: Placement %</option>
+        <option value="avgPackage">Sort: Avg Package</option>
+        <option value="highestPackage">Sort: Highest Pkg</option>
+        <option value="recruiters">Sort: Recruiters</option>
+      </select>
+    </div>
+    <div id="branches-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
+  </div>
+
+  <!-- TRENDS -->
+  <div id="sec-trends" class="section">
+    <div style="margin-bottom:36px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:26px">📊</span>
+        <h2 style="font-size:clamp(22px,3vw,30px);font-weight:800;color:#f1f5f9;letter-spacing:-0.5px">Yearly Trends</h2>
+      </div>
+      <p style="font-size:13px;color:#475569;margin-left:36px">5-year longitudinal placement performance</p>
+      <div style="width:52px;height:2px;background:linear-gradient(90deg,#00d4ff,transparent);margin-top:10px;margin-left:36px;border-radius:1px"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:20px">
+      <div class="glass" style="padding:22px;border-radius:16px;border:1px solid rgba(0,212,255,0.08)">
+        <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:2px">Package Growth</div>
+        <div style="font-size:10px;color:#334155;margin-bottom:18px;font-family:'Space Mono',monospace">AVG & HIGHEST (LPA)</div>
+        <div class="chart-wrap"><canvas id="chart-package" height="210"></canvas></div>
+      </div>
+      <div class="glass" style="padding:22px;border-radius:16px;border:1px solid rgba(0,212,255,0.08)">
+        <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:2px">Offers & Companies</div>
+        <div style="font-size:10px;color:#334155;margin-bottom:18px;font-family:'Space Mono',monospace">YEARLY VOLUME</div>
+        <div class="chart-wrap"><canvas id="chart-volume" height="210"></canvas></div>
+      </div>
+    </div>
+    <div class="glass" style="padding:22px;border-radius:16px;border:1px solid rgba(0,212,255,0.08);margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:2px">Branch Package Comparison</div>
+      <div style="font-size:10px;color:#334155;margin-bottom:18px;font-family:'Space Mono',monospace">2024-25 — ALL DEPARTMENTS</div>
+      <div class="chart-wrap"><canvas id="chart-branch-cmp" height="220"></canvas></div>
+    </div>
+    <div class="glass" style="padding:22px;border-radius:16px;border:1px solid rgba(0,212,255,0.08)">
+      <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:16px">Placement Rate by Branch</div>
+      <div id="placement-bars"></div>
+    </div>
+  </div>
+
+  <!-- COMPANIES -->
+  <div id="sec-companies" class="section">
+    <div style="margin-bottom:36px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:26px">🏢</span>
+        <h2 style="font-size:clamp(22px,3vw,30px);font-weight:800;color:#f1f5f9;letter-spacing:-0.5px">Recruiting Companies</h2>
+      </div>
+      <p style="font-size:13px;color:#475569;margin-left:36px">82 companies visited campus in 2024-25</p>
+      <div style="width:52px;height:2px;background:linear-gradient(90deg,#00d4ff,transparent);margin-top:10px;margin-left:36px;border-radius:1px"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <input type="text" id="company-search" placeholder="🔍  Search company…" oninput="filterCompanies()" style="flex:1;min-width:160px;padding:8px 14px;border-radius:10px;background:rgba(10,18,35,0.9);border:1px solid rgba(0,212,255,0.14);color:#e2e8f0;font-size:13px;font-family:'Syne',sans-serif">
+    </div>
+    <div id="sector-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <div id="companies-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:11px"></div>
+  </div>
+
+  <!-- TOP OFFERS -->
+  <div id="sec-topoffers" class="section">
+    <div style="margin-bottom:36px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:26px">🏆</span>
+        <h2 style="font-size:clamp(22px,3vw,30px);font-weight:800;color:#f1f5f9;letter-spacing:-0.5px">Top Offers 2024</h2>
+      </div>
+      <p style="font-size:13px;color:#475569;margin-left:36px">Highest salary packages from the placement batch 2024-25</p>
+      <div style="width:52px;height:2px;background:linear-gradient(90deg,#00d4ff,transparent);margin-top:10px;margin-left:36px;border-radius:1px"></div>
+    </div>
+    <div id="top-packages-list" style="display:flex;flex-direction:column;gap:11px"></div>
+  </div>
+
+  <!-- PDFs -->
+  <div id="sec-pdfs" class="section">
+    <div style="margin-bottom:36px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:26px">📄</span>
+        <h2 style="font-size:clamp(22px,3vw,30px);font-weight:800;color:#f1f5f9;letter-spacing:-0.5px">Placement PDFs</h2>
+      </div>
+      <p style="font-size:13px;color:#475569;margin-left:36px">Branch-wise official placement reports — upload & view</p>
+      <div style="width:52px;height:2px;background:linear-gradient(90deg,#00d4ff,transparent);margin-top:10px;margin-left:36px;border-radius:1px"></div>
+    </div>
+    <div class="glass" style="padding:10px 16px;border-radius:10px;margin-bottom:18px;border:1px solid rgba(251,191,36,0.15);display:flex;gap:10px;align-items:center">
+      <span style="font-size:16px">💡</span>
+      <span style="font-size:12px;color:#64748b">Name your PDFs with branch codes for auto-tagging — e.g. <span style="color:#00d4ff;font-family:'Space Mono',monospace">CSE_Placement_2024.pdf</span></span>
+    </div>
+    <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()">
+      <input id="file-input" type="file" accept=".pdf" multiple style="display:none" onchange="handleFiles(this.files)">
+      <div id="drop-icon" style="font-size:44px;margin-bottom:12px">📁</div>
+      <div id="drop-text" style="font-size:16px;font-weight:700;color:#94a3b8;margin-bottom:5px">Drag & drop PDFs or click to browse</div>
+      <div style="font-size:12px;color:#334155">Multiple files supported · Branch auto-detected from filename</div>
+    </div>
+    <div id="pdf-filter-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <div id="pdf-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">
+      <div style="text-align:center;padding:60px 20px;color:#1e293b;grid-column:1/-1">
+        <div style="font-size:56px;margin-bottom:14px">📂</div>
+        <div style="font-size:15px;color:#334155">No PDFs uploaded yet</div>
+        <div style="font-size:12px;color:#1e293b;margin-top:6px">Upload branch-wise placement reports to view them here</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer style="border-top:1px solid rgba(0,212,255,0.06);padding:20px 18px;text-align:center">
+  <div style="font-size:10px;color:#1e293b;font-family:'Space Mono',monospace;letter-spacing:2px">HBTU KANPUR · TRAINING & PLACEMENT CELL · SESSION 2024-25 · DATA FROM OFFICIAL PLACEMENT REPORT</div>
+</footer>
+
+<!-- PDF Viewer Modal -->
+<div id="pdf-modal" class="pdf-modal" style="display:none">
+  <div style="padding:13px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,212,255,0.08);background:rgba(10,18,35,0.98);flex-shrink:0">
+    <div>
+      <div id="pdf-modal-name" style="font-size:13px;font-weight:700;color:#f1f5f9"></div>
+      <div id="pdf-modal-meta" style="font-size:10px;color:#475569;margin-top:2px;font-family:'Space Mono',monospace"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="pdf-download-btn" style="padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;background:rgba(0,212,255,0.09);border:1px solid rgba(0,212,255,0.2);color:#00d4ff">↓ Download</button>
+      <button onclick="closePdfModal()" style="padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:rgba(239,68,68,0.09);border:1px solid rgba(239,68,68,0.22);color:#f87171">✕ Close</button>
+    </div>
+  </div>
+  <iframe id="pdf-iframe" style="flex:1;border:none;background:#fff" title="PDF Viewer"></iframe>
+</div>
+
+</div><!-- #app -->
+
+<script>
+/* ─── DATA ─── */
+const BRANCHES = [
+  { id:'cse',   name:'CSE',   fullName:'Computer Science & Engineering',    color:'#00d4ff', emoji:'💻' },
+  { id:'it',    name:'IT',    fullName:'Information Technology',             color:'#a78bfa', emoji:'🌐' },
+  { id:'ece',   name:'ECE',   fullName:'Electronics Engineering',            color:'#34d399', emoji:'📡' },
+  { id:'ee',    name:'EE',    fullName:'Electrical Engineering',             color:'#fbbf24', emoji:'⚡' },
+  { id:'me',    name:'ME',    fullName:'Mechanical Engineering',             color:'#f87171', emoji:'⚙️' },
+  { id:'ce',    name:'CE',    fullName:'Civil Engineering',                  color:'#818cf8', emoji:'🏗️' },
+  { id:'chem',  name:'CHEM',  fullName:'Chemical Engineering',               color:'#22d3ee', emoji:'🧪' },
+  { id:'paint', name:'PT',    fullName:'Paint Technology',                   color:'#fb923c', emoji:'🎨' },
+  { id:'plas',  name:'PLAS',  fullName:'Plastic Technology',                 color:'#e879f9', emoji:'♻️' },
+  { id:'ot',    name:'OT',    fullName:'Oil Technology',                     color:'#4ade80', emoji:'🛢️' },
+  { id:'ft',    name:'FT',    fullName:'Food Technology',                    color:'#fde68a', emoji:'🍽️' },
+  { id:'bche',  name:'BCE',   fullName:'Biochemical Engineering',            color:'#6ee7b7', emoji:'🔬' },
+  { id:'mca',   name:'MCA',   fullName:'Master of Computer Applications',    color:'#f472b6', emoji:'🖥️' },
+  { id:'mba',   name:'MBA',   fullName:'Master of Business Administration',  color:'#86efac', emoji:'📊' },
+];
+
+const PLACEMENT_DATA = {
+  /* Data sourced from official HBTU Placement Report 2024-25 (602 total records, avg 6.85 LPA) */
+  cse:  { avgPackage:7.8,  medianPackage:7.0,  highestPackage:15,    placementPct:92, offers:55,  recruiters:20, totalStudents:60  },
+  it:   { avgPackage:7.2,  medianPackage:6.0,  highestPackage:15,    placementPct:88, offers:60,  recruiters:22, totalStudents:68  },
+  ece:  { avgPackage:7.0,  medianPackage:5.5,  highestPackage:22,    placementPct:84, offers:40,  recruiters:18, totalStudents:48  },
+  ee:   { avgPackage:7.0,  medianPackage:6.5,  highestPackage:22,    placementPct:86, offers:45,  recruiters:22, totalStudents:52  },
+  me:   { avgPackage:7.2,  medianPackage:6.5,  highestPackage:10.75, placementPct:83, offers:45,  recruiters:20, totalStudents:54  },
+  ce:   { avgPackage:6.8,  medianPackage:6.5,  highestPackage:9,     placementPct:72, offers:15,  recruiters:8,  totalStudents:21  },
+  chem: { avgPackage:7.2,  medianPackage:7.0,  highestPackage:13.4,  placementPct:85, offers:65,  recruiters:20, totalStudents:76  },
+  paint:{ avgPackage:9.0,  medianPackage:9.5,  highestPackage:12.08, placementPct:90, offers:46,  recruiters:12, totalStudents:51  },
+  plas: { avgPackage:7.5,  medianPackage:8.0,  highestPackage:11.5,  placementPct:88, offers:35,  recruiters:12, totalStudents:40  },
+  ot:   { avgPackage:9.2,  medianPackage:7.0,  highestPackage:22,    placementPct:89, offers:25,  recruiters:10, totalStudents:28  },
+  ft:   { avgPackage:6.0,  medianPackage:6.0,  highestPackage:7.5,   placementPct:80, offers:18,  recruiters:10, totalStudents:22  },
+  bche: { avgPackage:7.0,  medianPackage:7.0,  highestPackage:8.96,  placementPct:78, offers:10,  recruiters:5,  totalStudents:13  },
+  mca:  { avgPackage:6.0,  medianPackage:5.5,  highestPackage:9,     placementPct:85, offers:35,  recruiters:12, totalStudents:41  },
+  mba:  { avgPackage:5.8,  medianPackage:5.5,  highestPackage:9,     placementPct:82, offers:94,  recruiters:25, totalStudents:115 },
+};
+
+const YEARLY_TRENDS = [
+  { year:'2020-21', avgPackage:5.2,  highestPackage:18, placedStudents:380, companies:55 },
+  { year:'2021-22', avgPackage:5.8,  highestPackage:22, placedStudents:420, companies:62 },
+  { year:'2022-23', avgPackage:6.1,  highestPackage:24, placedStudents:458, companies:68 },
+  { year:'2023-24', avgPackage:6.4,  highestPackage:26, placedStudents:490, companies:75 },
+  { year:'2024-25', avgPackage:6.85, highestPackage:22, placedStudents:602, companies:82 },
+];
+
+const TOP_PACKAGES = [
+  { name:'Aryan Dubey',          branch:'OT',   company:'Valence',              package:22,    role:'Process Engineer'   },
+  { name:'RAJAV JAIN',           branch:'EE',   company:'Valence',              package:22,    role:'Electrical Engineer' },
+  { name:'Rohan Kumar Singh',    branch:'ECE',  company:'Meesho (Off Campus)',  package:22,    role:'Software Engineer'  },
+  { name:'ABHISHEK SINGH',       branch:'CSE',  company:'Samsung R&D Delhi',    package:15,    role:'Software Engineer'  },
+  { name:'Deepanshu Srivastav',  branch:'IT',   company:'Acceldata',            package:15,    role:'Data Engineer'      },
+  { name:'AMBRESH KUMAR SAINI',  branch:'IT',   company:'Samsung R&D Noida',    package:14.5,  role:'Software Engineer'  },
+  { name:'PRIYANSHI DHANUKA',    branch:'CSE',  company:'Effiya Technologies',  package:14.1,  role:'Software Engineer'  },
+  { name:'SANKALP SINGH',        branch:'CHEM', company:'ExxonMobil',           package:13.4,  role:'Process Engineer'   },
+  { name:'ANURAG KHOKHAR',       branch:'IT',   company:'Josh Technologies',    package:13.23, role:'Software Developer' },
+  { name:'MANAS MISHRA',         branch:'PT',   company:'Asian Paints',         package:12.08, role:'Research Engineer'  },
+];
+
+const COMPANIES = [
+  { name:'Valence',              sector:'Engineering',  packages:'22 LPA',        visits:1 },
+  { name:'Meesho',               sector:'Tech',         packages:'22 LPA',        visits:1 },
+  { name:'Samsung R&D Delhi',    sector:'Tech',         packages:'15 LPA',        visits:1 },
+  { name:'Acceldata',            sector:'Tech',         packages:'15 LPA',        visits:1 },
+  { name:'Samsung R&D Noida',    sector:'Tech',         packages:'14.5 LPA',      visits:1 },
+  { name:'Effiya Technologies',  sector:'Tech',         packages:'14.1 LPA',      visits:1 },
+  { name:'ExxonMobil',           sector:'Core',         packages:'13.4 LPA',      visits:1 },
+  { name:'Josh Technologies',    sector:'Tech',         packages:'13.23 LPA',     visits:1 },
+  { name:'Asian Paints',         sector:'Core',         packages:'12.08 LPA',     visits:1 },
+  { name:'Lummus Technology',    sector:'Core',         packages:'11.85 LPA',     visits:1 },
+  { name:'VARROC',               sector:'Automotive',   packages:'11.5 LPA',      visits:1 },
+  { name:'Maruti Suzuki',        sector:'Automotive',   packages:'10.75 LPA',     visits:1 },
+  { name:'Bajaj Auto',           sector:'Automotive',   packages:'9.5 LPA',       visits:1 },
+  { name:'IndiaMart',            sector:'Tech',         packages:'9.5 LPA',       visits:1 },
+  { name:'Rinex Technologies',   sector:'Tech',         packages:'9 LPA',         visits:1 },
+  { name:'Intellipaat',          sector:'EdTech',       packages:'9 LPA',         visits:1 },
+  { name:'Jaro Education',       sector:'EdTech',       packages:'8.58–8.96 LPA', visits:1 },
+  { name:'Reliance Industries',  sector:'Core',         packages:'8.5 LPA',       visits:1 },
+  { name:'Samsung Engineering',  sector:'Engineering',  packages:'8.5 LPA',       visits:1 },
+  { name:'Havells',              sector:'Engineering',  packages:'8.5 LPA',       visits:1 },
+  { name:'IT Nova',              sector:'Tech',         packages:'8.2 LPA',       visits:1 },
+  { name:'Airliquide',           sector:'Core',         packages:'8 LPA',         visits:1 },
+  { name:'TVS Motors',           sector:'Automotive',   packages:'8 LPA',         visits:1 },
+  { name:'Jubilant Ingrevia',    sector:'Core',         packages:'8 LPA',         visits:1 },
+  { name:'Physics Wallah',       sector:'EdTech',       packages:'7.5 LPA',       visits:1 },
+  { name:'Dabur',                sector:'FMCG',         packages:'7.5 LPA',       visits:1 },
+  { name:'TCS Digital',          sector:'IT Services',  packages:'7.08 LPA',      visits:1 },
+  { name:'Hero Fincorp',         sector:'Finance',      packages:'7 LPA',         visits:1 },
+  { name:'Naini Papers',         sector:'Manufacturing',packages:'7 LPA',         visits:1 },
+  { name:'Adani Wilmar',         sector:'FMCG',         packages:'7 LPA',         visits:1 },
+  { name:'Patanjali Ayurved',    sector:'FMCG',         packages:'7 LPA',         visits:1 },
+  { name:'Noida Power Corp',     sector:'PSU',          packages:'7 LPA',         visits:1 },
+  { name:'Allen',                sector:'EdTech',       packages:'7 LPA',         visits:1 },
+  { name:'Himadri Speciality',   sector:'Core',         packages:'7 LPA',         visits:1 },
+  { name:'Mankiewicz India',     sector:'Core',         packages:'7 LPA',         visits:1 },
+  { name:'XCEDENCE',             sector:'Tech',         packages:'7 LPA',         visits:1 },
+  { name:'ADM',                  sector:'FMCG',         packages:'6.6 LPA',       visits:1 },
+  { name:'SSWL',                 sector:'Automotive',   packages:'6.5 LPA',       visits:1 },
+  { name:'L&T',                  sector:'Engineering',  packages:'6.5 LPA',       visits:1 },
+  { name:'PI Industries',        sector:'Core',         packages:'6.5–8.5 LPA',   visits:1 },
+  { name:'Corizo',               sector:'EdTech',       packages:'6.5 LPA',       visits:1 },
+  { name:'Godrej',               sector:'FMCG',         packages:'6.5 LPA',       visits:1 },
+  { name:'JSW Paints',           sector:'Core',         packages:'6.33 LPA',      visits:1 },
+  { name:'LearnFlu',             sector:'EdTech',       packages:'6–8 LPA',       visits:1 },
+  { name:'Honda Cars',           sector:'Automotive',   packages:'6 LPA',         visits:1 },
+  { name:'Servosys Solutions',   sector:'Tech',         packages:'6 LPA',         visits:1 },
+  { name:'Infinite Locus',       sector:'Tech',         packages:'6 LPA',         visits:1 },
+  { name:'APL Apollo',           sector:'Manufacturing',packages:'6 LPA',         visits:1 },
+  { name:'Maharani Paints',      sector:'Core',         packages:'6 LPA',         visits:1 },
+  { name:'MLA Industries',       sector:'Manufacturing',packages:'5.76 LPA',      visits:1 },
+  { name:'AtkinsRealis',         sector:'Engineering',  packages:'5.7 LPA',       visits:1 },
+  { name:'Shree Cement',         sector:'Manufacturing',packages:'5.5 LPA',       visits:1 },
+  { name:'Aarti Industries',     sector:'Core',         packages:'5.5 LPA',       visits:1 },
+  { name:'Indorama',             sector:'Core',         packages:'5.5–8.5 LPA',   visits:1 },
+  { name:'Kribhco Fertilizers',  sector:'PSU',          packages:'5.5–8.5 LPA',   visits:1 },
+  { name:'J&K Group',            sector:'FMCG',         packages:'5.5 LPA',       visits:1 },
+  { name:'Patanjali Foods',      sector:'FMCG',         packages:'5.5 LPA',       visits:1 },
+  { name:'Carnation',            sector:'Tech',         packages:'5.5 LPA',       visits:1 },
+  { name:'JK Cement',            sector:'Manufacturing',packages:'5.5 LPA',       visits:1 },
+  { name:'Hytech Pro',           sector:'Tech',         packages:'5 LPA',         visits:1 },
+  { name:'Evalueserve',          sector:'Consulting',   packages:'5 LPA',         visits:1 },
+  { name:'SRF',                  sector:'Core',         packages:'5 LPA',         visits:1 },
+  { name:'Bajaj Indef',          sector:'Engineering',  packages:'5 LPA',         visits:1 },
+  { name:'Voltas',               sector:'Engineering',  packages:'5 LPA',         visits:1 },
+  { name:'Tata Advanced Systems',sector:'Core',         packages:'5 LPA',         visits:1 },
+  { name:'Berger Paints',        sector:'Core',         packages:'5 LPA',         visits:1 },
+  { name:'Alok Batch Master',    sector:'Core',         packages:'5 LPA',         visits:1 },
+  { name:'New Light Institute',  sector:'EdTech',       packages:'5 LPA',         visits:1 },
+  { name:'Unthinkable',          sector:'Tech',         packages:'5 LPA',         visits:1 },
+  { name:'Kloudrac',             sector:'Tech',         packages:'4.5–5.5 LPA',   visits:1 },
+  { name:'Rapid Engineering',    sector:'Engineering',  packages:'4.53 LPA',      visits:1 },
+  { name:'Pakka Packaging',      sector:'Manufacturing',packages:'4.8 LPA',       visits:1 },
+  { name:'KEI Industries',       sector:'Engineering',  packages:'4.2 LPA',       visits:1 },
+  { name:'Mahindra Swaraj',      sector:'Automotive',   packages:'4.2 LPA',       visits:1 },
+  { name:'Nerolac Paints',       sector:'Core',         packages:'4.2 LPA',       visits:1 },
+  { name:'Cognizant',            sector:'IT Services',  packages:'4 LPA',         visits:1 },
+  { name:'Surface Paints',       sector:'Core',         packages:'4 LPA',         visits:1 },
+  { name:'Bhansali Polymers',    sector:'Core',         packages:'3.6 LPA',       visits:1 },
+  { name:'TCS Ninja',            sector:'IT Services',  packages:'3.45 LPA',      visits:1 },
+  { name:'TAPI Services',        sector:'Tech',         packages:'3 LPA',         visits:1 },
+  { name:'Hovis Food',           sector:'FMCG',         packages:'3 LPA',         visits:1 },
+  { name:'Greengine',            sector:'Core',         packages:'2.76 LPA',      visits:1 },
+];
+
+const SECTOR_COLORS = {
+  Tech:'#00d4ff', 'IT Services':'#a78bfa', Consulting:'#34d399',
+  Engineering:'#fbbf24', Automotive:'#f87171', PSU:'#86efac',
+  Core:'#22d3ee', FMCG:'#fb923c', EdTech:'#f472b6',
+  Finance:'#818cf8', Manufacturing:'#e879f9'
+};
+
+const MEDALS = ['🥇','🥈','🥉'];
+const MEDAL_BG = [
+  'linear-gradient(135deg,#FFD700,#FFA500)',
+  'linear-gradient(135deg,#C0C0C0,#A0A0A0)',
+  'linear-gradient(135deg,#CD7F32,#B87333)',
+];
+
+let pdfs = [];
+let pdfFilter = 'All';
+let companyFilter = 'All';
+let chartsInit = false;
+
+/* ─── NAV SETUP ─── */
+const NAV_ITEMS = [
+  { label:'Overview',   id:'overview' },
+  { label:'Branches',   id:'branches' },
+  { label:'Trends',     id:'trends'   },
+  { label:'Companies',  id:'companies'},
+  { label:'Top Offers', id:'topoffers'},
+  { label:'PDFs',       id:'pdfs'     },
+];
+
+function buildNav() {
+  const desktop = document.getElementById('nav-links');
+  const mobile  = document.getElementById('mobile-nav');
+  NAV_ITEMS.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn' + (item.id === 'overview' ? ' active' : '');
+    btn.textContent = item.label;
+    btn.dataset.tab = item.id;
+    btn.onclick = () => switchTab(item.id);
+    desktop.appendChild(btn);
+
+    const mb = document.createElement('button');
+    mb.style.cssText = 'display:block;width:100%;text-align:left;padding:11px 14px;border-radius:8px;margin-bottom:3px;background:transparent;color:#64748b;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:Syne,sans-serif';
+    mb.textContent = item.label;
+    mb.dataset.tab = item.id;
+    mb.onclick = () => { switchTab(item.id); toggleMobileNav(); };
+    mobile.appendChild(mb);
+  });
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  const sec = document.getElementById('sec-' + id);
+  if (sec) { sec.classList.add('active'); sec.classList.add('fade-up'); }
+  if (id === 'trends' && !chartsInit) { setTimeout(initCharts, 50); chartsInit = true; }
+  if (id === 'trends') setTimeout(animatePlacementBars, 100);
+  if (id === 'branches') renderBranches();
+  if (id === 'topoffers') setTimeout(initTopPackages, 60);
+}
+
+function toggleMobileNav() {
+  const mn = document.getElementById('mobile-nav');
+  mn.style.display = mn.style.display === 'none' ? 'block' : 'none';
+}
+
+/* ─── COUNTER ANIMATION ─── */
+function animateCounter(el, target, decimals = 0, duration = 1500) {
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const val = eased * target;
+    el.textContent = decimals > 0 ? val.toFixed(decimals) : Math.round(val);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ─── OVERVIEW ─── */
+function buildOverview() {
+  const stats = [
+    { target:6.85, suffix:' LPA', decimals:2, label:'Avg Package',     sublabel:'Overall 2024-25',     color:'#00d4ff', icon:'💰' },
+    { target:22,   suffix:' LPA', decimals:0, label:'Highest Package',  sublabel:'Valence / Meesho',    color:'#a78bfa', icon:'🚀' },
+    { target:7.0,  suffix:' LPA', decimals:1, label:'Median Package',   sublabel:'All branches',        color:'#34d399', icon:'📈' },
+    { target:85,   suffix:'%',    decimals:0, label:'Placement Rate',   sublabel:'Batch 2024-25',       color:'#fbbf24', icon:'🎯' },
+    { target:602,  suffix:'+',    decimals:0, label:'Total Offers',     sublabel:'Incl. multiple offers',color:'#f472b6', icon:'📋' },
+    { target:82,   suffix:'',     decimals:0, label:'Companies',        sublabel:'Visited campus',      color:'#86efac', icon:'🏢' },
+  ];
+
+  const grid = document.getElementById('stats-grid');
+  stats.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'glass card-hover glow-pulse stat-card';
+    div.style.cssText = `border:1px solid ${s.color}22`;
+    div.innerHTML = `
+      <div class="orb" style="width:100px;height:100px;background:${s.color};top:-30px;right:-30px;opacity:0.15"></div>
+      <div style="font-size:26px;margin-bottom:8px">${s.icon}</div>
+      <div class="counter" style="font-size:clamp(26px,3.5vw,36px);font-weight:800;color:${s.color};text-shadow:0 0 20px ${s.color}50;line-height:1;margin-bottom:5px">
+        <span class="val">0</span>${s.suffix}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;font-weight:600;letter-spacing:0.4px;text-transform:uppercase">${s.label}</div>
+      <div style="font-size:10px;color:#334155;margin-top:3px">${s.sublabel}</div>
+    `;
+    grid.appendChild(div);
+  });
+
+  // Observe and animate
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const i = [...grid.children].indexOf(e.target);
+      if (i < 0) return;
+      animateCounter(e.target.querySelector('.val'), stats[i].target, stats[i].decimals);
+      observer.unobserve(e.target);
+    });
+  }, { threshold: 0.1 });
+  [...grid.children].forEach(c => observer.observe(c));
+
+  // Ticker
+  const ticker = document.getElementById('ticker-inner');
+  [...COMPANIES, ...COMPANIES].forEach(c => {
+    const span = document.createElement('span');
+    span.style.cssText = 'white-space:nowrap;font-size:11px;color:#334155;font-family:"Space Mono",monospace;padding:4px 10px;border-radius:4px;background:rgba(15,23,42,0.6)';
+    span.innerHTML = `${c.name} <span style="color:${SECTOR_COLORS[c.sector]||'#00d4ff'}">·</span> ${c.sector}`;
+    ticker.appendChild(span);
+  });
+
+  // Mini branch grid
+  const minigrid = document.getElementById('branch-mini-grid');
+  BRANCHES.forEach(b => {
+    const d = PLACEMENT_DATA[b.id];
+    const div = document.createElement('div');
+    div.className = 'glass card-hover';
+    div.style.cssText = `padding:14px 16px;border-radius:12px;border:1px solid ${b.color}18;display:flex;align-items:center;gap:12px`;
+    div.innerHTML = `
+      <span style="font-size:20px">${b.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:13px;font-weight:700;color:${b.color};font-family:'Space Mono',monospace">${b.name}</span>
+          <span style="font-size:11px;color:#94a3b8;font-family:'Space Mono',monospace">${d.placementPct}%</span>
+        </div>
+        <div style="height:3px;border-radius:2px;background:rgba(30,41,59,0.8)">
+          <div class="branch-bar-fill" data-w="${d.placementPct}" style="background:linear-gradient(90deg,${b.color},${b.color}80)"></div>
+        </div>
+      </div>
+    `;
+    minigrid.appendChild(div);
+  });
+
+  // Animate mini bars
+  setTimeout(() => {
+    document.querySelectorAll('.branch-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.w + '%';
+    });
+  }, 300);
+}
+
+/* ─── BRANCHES ─── */
+function renderBranches() {
+  const search = document.getElementById('branch-search').value.toLowerCase();
+  const sortKey = document.getElementById('branch-sort').value;
+  const grid = document.getElementById('branches-grid');
+  grid.innerHTML = '';
+
+  let filtered = BRANCHES.filter(b =>
+    b.name.toLowerCase().includes(search) || b.fullName.toLowerCase().includes(search)
+  ).sort((a, b2) => PLACEMENT_DATA[b2.id][sortKey] - PLACEMENT_DATA[a.id][sortKey]);
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:60px;color:#334155;grid-column:1/-1">No branches matched your search.</div>';
+    return;
+  }
+
+  filtered.forEach((b, idx) => {
+    const d = PLACEMENT_DATA[b.id];
+    const div = document.createElement('div');
+    div.className = 'glass card-hover fade-card';
+    div.style.cssText = `padding:22px;border-radius:16px;border:1px solid ${b.color}1a;position:relative;overflow:hidden`;
+    div.innerHTML = `
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${b.color},transparent)"></div>
+      <div class="orb" style="width:100px;height:100px;background:${b.color};top:-30px;right:-30px;opacity:0.1"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+            <span style="font-size:20px">${b.emoji}</span>
+            <span style="font-size:22px;font-weight:800;color:${b.color};font-family:'Space Mono',monospace">${b.name}</span>
+          </div>
+          <div style="font-size:11px;color:#475569;padding-left:28px">${b.fullName}</div>
+        </div>
+        <div style="padding:4px 10px;border-radius:20px;background:${b.color}12;border:1px solid ${b.color}28;font-size:13px;color:${b.color};font-weight:700;font-family:'Space Mono',monospace">${d.placementPct}%</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#334155;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">
+          <span>PLACEMENT RATE</span>
+          <span style="color:${b.color}">${d.offers} / ${d.totalStudents} students</span>
+        </div>
+        <div style="height:4px;background:rgba(30,41,59,0.9);border-radius:2px;overflow:hidden">
+          <div class="progress-bar-fill" data-w="${d.placementPct}" style="background:linear-gradient(90deg,${b.color},${b.color}70)"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${[
+          { l:'Avg Package', v:`₹${d.avgPackage} LPA`, hi:true },
+          { l:'Highest Pkg', v:`₹${d.highestPackage} LPA`, hi:false },
+          { l:'Median Pkg',  v:`₹${d.medianPackage} LPA`, hi:false },
+          { l:'Recruiters',  v:`${d.recruiters}+`, hi:false },
+        ].map(m => `
+          <div style="padding:9px 11px;border-radius:10px;background:${m.hi ? b.color+'0e' : 'rgba(10,18,35,0.6)'};border:1px solid ${m.hi ? b.color+'22' : 'rgba(20,30,50,0.8)'}">
+            <div style="font-size:9px;color:#334155;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:3px">${m.l}</div>
+            <div style="font-size:13px;font-weight:700;color:${m.hi ? b.color : '#e2e8f0'};font-family:'Space Mono',monospace">${m.v}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    grid.appendChild(div);
+    setTimeout(() => div.classList.add('visible'), idx * 60);
+  });
+
+  setTimeout(() => {
+    document.querySelectorAll('#branches-grid .progress-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.w + '%';
+    });
+  }, 200);
+}
+
+function filterBranches() { renderBranches(); }
+
+/* ─── CHARTS ─── */
+const CHART_DEFAULTS = {
+  color: '#475569',
+  grid: 'rgba(0,212,255,0.04)',
+  font: "'Space Mono'",
+};
+
+function chartFont() {
+  return { family: CHART_DEFAULTS.font, size: 10 };
+}
+
+function initCharts() {
+  Chart.defaults.color = CHART_DEFAULTS.color;
+
+  // Package growth area chart
+  const ctxP = document.getElementById('chart-package').getContext('2d');
+  new Chart(ctxP, {
+    type: 'line',
+    data: {
+      labels: YEARLY_TRENDS.map(d => d.year),
+      datasets: [
+        {
+          label: 'Avg Package (LPA)',
+          data: YEARLY_TRENDS.map(d => d.avgPackage),
+          borderColor: '#00d4ff', borderWidth: 2,
+          pointBackgroundColor: '#00d4ff', pointRadius: 4,
+          fill: true,
+          backgroundColor: (ctx) => {
+            const g = ctx.chart.ctx.createLinearGradient(0,0,0,210);
+            g.addColorStop(0,'rgba(0,212,255,0.28)'); g.addColorStop(1,'rgba(0,212,255,0)');
+            return g;
+          },
+          tension: 0.4,
+        },
+        {
+          label: 'Highest Package (LPA)',
+          data: YEARLY_TRENDS.map(d => d.highestPackage),
+          borderColor: '#a78bfa', borderWidth: 2,
+          pointBackgroundColor: '#a78bfa', pointRadius: 4,
+          fill: true,
+          backgroundColor: (ctx) => {
+            const g = ctx.chart.ctx.createLinearGradient(0,0,0,210);
+            g.addColorStop(0,'rgba(167,139,250,0.28)'); g.addColorStop(1,'rgba(167,139,250,0)');
+            return g;
+          },
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: chartFont(), color: '#475569' } },
+        tooltip: { backgroundColor: 'rgba(10,18,35,0.98)', borderColor: 'rgba(0,212,255,0.2)', borderWidth: 1, titleFont: chartFont(), bodyFont: chartFont() },
+      },
+      scales: {
+        x: { grid: { color: CHART_DEFAULTS.grid }, ticks: { font: chartFont() } },
+        y: { grid: { color: CHART_DEFAULTS.grid }, ticks: { font: chartFont() } },
+      },
+    },
+  });
+
+  // Volume bar chart
+  const ctxV = document.getElementById('chart-volume').getContext('2d');
+  new Chart(ctxV, {
+    type: 'bar',
+    data: {
+      labels: YEARLY_TRENDS.map(d => d.year),
+      datasets: [
+        { label: 'Placed Students', data: YEARLY_TRENDS.map(d => d.placedStudents), backgroundColor: 'rgba(52,211,153,0.85)', borderRadius: 4 },
+        { label: 'Companies',       data: YEARLY_TRENDS.map(d => d.companies),       backgroundColor: 'rgba(251,191,36,0.85)', borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: chartFont(), color: '#475569' } },
+        tooltip: { backgroundColor: 'rgba(10,18,35,0.98)', borderColor: 'rgba(0,212,255,0.2)', borderWidth: 1, titleFont: chartFont(), bodyFont: chartFont() },
+      },
+      scales: {
+        x: { grid: { color: CHART_DEFAULTS.grid }, ticks: { font: chartFont() } },
+        y: { grid: { color: CHART_DEFAULTS.grid }, ticks: { font: chartFont() } },
+      },
+    },
+  });
+
+  // Branch comparison
+  const ctxB = document.getElementById('chart-branch-cmp').getContext('2d');
+  new Chart(ctxB, {
+    type: 'bar',
+    data: {
+      labels: BRANCHES.map(b => b.name),
+      datasets: [
+        { label: 'Avg Package', data: BRANCHES.map(b => PLACEMENT_DATA[b.id].avgPackage), backgroundColor: 'rgba(0,212,255,0.75)', borderRadius: 4 },
+        { label: 'Highest Package', data: BRANCHES.map(b => PLACEMENT_DATA[b.id].highestPackage), backgroundColor: 'rgba(167,139,250,0.75)', borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: chartFont(), color: '#475569' } },
+        tooltip: { backgroundColor: 'rgba(10,18,35,0.98)', borderColor: 'rgba(0,212,255,0.2)', borderWidth: 1, titleFont: chartFont(), bodyFont: chartFont() },
+      },
+      scales: {
+        x: { grid: { color: CHART_DEFAULTS.grid }, ticks: { font: chartFont() } },
+        y: { grid: { color: CHART_DEFAULTS.grid }, ticks: { font: chartFont() } },
+      },
+    },
+  });
+
+  // Placement bars
+  animatePlacementBars();
+}
+
+function animatePlacementBars() {
+  const container = document.getElementById('placement-bars');
+  if (!container.innerHTML.trim()) {
+    BRANCHES.forEach(b => {
+      const d = PLACEMENT_DATA[b.id];
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:10px';
+      row.innerHTML = `
+        <div style="width:42px;font-size:11px;font-weight:700;color:${b.color};font-family:'Space Mono',monospace;text-align:right">${b.name}</div>
+        <div style="flex:1;height:7px;background:rgba(20,30,50,0.9);border-radius:4px;overflow:hidden">
+          <div class="progress-bar-fill" data-w="${d.placementPct}" style="background:linear-gradient(90deg,${b.color},${b.color}70)"></div>
+        </div>
+        <div style="width:38px;font-size:11px;color:#64748b;font-family:'Space Mono',monospace">${d.placementPct}%</div>
+      `;
+      container.appendChild(row);
+    });
+  }
+  setTimeout(() => {
+    container.querySelectorAll('.progress-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.w + '%';
+    });
+  }, 100);
+}
+
+/* ─── COMPANIES ─── */
+function buildCompanies() {
+  const sectors = ['All', ...new Set(COMPANIES.map(c => c.sector))];
+  const filterDiv = document.getElementById('sector-filters');
+  sectors.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (s === 'All' ? ' active' : '');
+    btn.textContent = s;
+    btn.dataset.sector = s;
+    btn.onclick = () => {
+      companyFilter = s;
+      document.querySelectorAll('#sector-filters .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.sector === s));
+      renderCompanies();
+    };
+    filterDiv.appendChild(btn);
+  });
+  renderCompanies();
+}
+
+function renderCompanies() {
+  const search = document.getElementById('company-search').value.toLowerCase();
+  const grid = document.getElementById('companies-grid');
+  grid.innerHTML = '';
+  const visible = COMPANIES.filter(c =>
+    (companyFilter === 'All' || c.sector === companyFilter) &&
+    c.name.toLowerCase().includes(search)
+  );
+  if (!visible.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:50px;color:#334155;grid-column:1/-1">No companies matched your filter.</div>';
+    return;
+  }
+  visible.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'glass card-hover';
+    div.style.cssText = `padding:14px 18px;border-radius:12px;border:1px solid ${SECTOR_COLORS[c.sector]||'#334155'}18;display:flex;align-items:center;justify-content:space-between`;
+    div.innerHTML = `
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:2px">${c.name}</div>
+        <div style="font-size:10px;color:${SECTOR_COLORS[c.sector]||'#64748b'};letter-spacing:0.5px">${c.sector}</div>
+        <div style="font-size:10px;color:#334155;margin-top:5px;font-family:'Space Mono',monospace">${c.packages}</div>
+      </div>
+      <div style="padding:5px 8px;border-radius:8px;text-align:center;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.1)">
+        <div style="font-size:13px;font-weight:700;color:#00d4ff;font-family:'Space Mono',monospace">${c.visits}x</div>
+        <div style="font-size:8px;color:#334155;letter-spacing:1px">VISIT</div>
+      </div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function filterCompanies() { renderCompanies(); }
+
+/* ─── TOP PACKAGES ─── */
+function initTopPackages() {
+  const list = document.getElementById('top-packages-list');
+  if (list.children.length) return;
+  TOP_PACKAGES.forEach((pkg, i) => {
+    const branch = BRANCHES.find(b => b.name === pkg.branch);
+    const div = document.createElement('div');
+    div.className = 'glass card-hover slide-in';
+    div.style.cssText = `padding:14px 20px;border-radius:13px;border:1px solid ${branch?.color||'#334155'}18;display:flex;align-items:center;gap:14px;flex-wrap:wrap;transition-delay:${i*0.06}s`;
+    div.innerHTML = `
+      <div style="width:44px;height:44px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:${i<3?MEDAL_BG[i]:'rgba(20,30,50,0.9)'};font-size:${i<3?20:14}px;font-weight:700;font-family:'Space Mono',monospace;color:${i<3?'#000':'#475569'};box-shadow:${i<3?'0 0 18px rgba(255,200,0,0.2)':'none'}">
+        ${i < 3 ? MEDALS[i] : '#'+(i+1)}
+      </div>
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:15px;font-weight:700;color:#f1f5f9">${pkg.name}</div>
+        <div style="font-size:11px;color:#475569;margin-top:2px">${pkg.role} · ${pkg.company}</div>
+      </div>
+      <div style="padding:4px 10px;border-radius:8px;flex-shrink:0;background:${branch?.color||'#334155'}12;border:1px solid ${branch?.color||'#334155'}28;font-size:10px;color:${branch?.color||'#64748b'};font-family:'Space Mono',monospace;font-weight:700">${pkg.branch}</div>
+      <div style="font-size:12px;color:#64748b;min-width:72px;text-align:center;flex-shrink:0">${pkg.company}</div>
+      <div style="text-align:right;min-width:68px;flex-shrink:0">
+        <div style="font-size:22px;font-weight:800;color:#00d4ff;font-family:'Space Mono',monospace;text-shadow:0 0 16px rgba(0,212,255,0.4);line-height:1">₹${pkg.package}</div>
+        <div style="font-size:9px;color:#334155;letter-spacing:1px;margin-top:2px">LPA</div>
+      </div>
+    `;
+    list.appendChild(div);
+    setTimeout(() => div.classList.add('visible'), i * 70 + 50);
+  });
+}
+
+/* ─── PDF SECTION ─── */
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    if (f.type !== 'application/pdf') return;
+    const branchMatch = BRANCHES.find(b =>
+      f.name.toUpperCase().includes(b.name) ||
+      f.name.toUpperCase().includes(b.fullName.toUpperCase().slice(0,4))
+    );
+    pdfs.push({
+      id: Date.now() + Math.random(),
+      name: f.name,
+      url: URL.createObjectURL(f),
+      branch: branchMatch?.name || 'General',
+      branchColor: branchMatch?.color || '#64748b',
+      size: (f.size/1024/1024).toFixed(2) + ' MB',
+      date: new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}),
+    });
+  });
+  renderPdfs();
+}
+
+function renderPdfs() {
+  const tabs = document.getElementById('pdf-filter-tabs');
+  const grid = document.getElementById('pdf-grid');
+  const filterBranches = ['All', ...new Set(pdfs.map(p => p.branch))];
+
+  tabs.innerHTML = '';
+  if (pdfs.length) {
+    filterBranches.forEach(b => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (b === pdfFilter ? ' active' : '');
+      btn.textContent = b;
+      btn.onclick = () => { pdfFilter = b; renderPdfs(); };
+      tabs.appendChild(btn);
+    });
+  }
+
+  const visible = pdfFilter === 'All' ? pdfs : pdfs.filter(p => p.branch === pdfFilter);
+  if (!visible.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#1e293b;grid-column:1/-1">
+      <div style="font-size:56px;margin-bottom:14px">📂</div>
+      <div style="font-size:15px;color:#334155">No PDFs uploaded yet</div>
+      <div style="font-size:12px;color:#1e293b;margin-top:6px">Upload branch-wise placement reports to view them here</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = '';
+  visible.forEach(pdf => {
+    const div = document.createElement('div');
+    div.className = 'glass card-hover';
+    div.style.cssText = `padding:16px 18px;border-radius:13px;border:1px solid ${pdf.branchColor}1a;display:flex;flex-direction:column;gap:10px`;
+    div.innerHTML = `
+      <div style="display:flex;gap:11px;align-items:flex-start">
+        <div style="font-size:32px;flex-shrink:0;margin-top:2px">📄</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:#e2e8f0;word-break:break-word;line-height:1.35">${pdf.name}</div>
+          <div style="font-size:10px;color:#334155;margin-top:5px;font-family:'Space Mono',monospace">${pdf.size} · ${pdf.date}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center;justify-content:space-between">
+        <span style="padding:3px 9px;border-radius:6px;background:${pdf.branchColor}12;border:1px solid ${pdf.branchColor}28;font-size:10px;color:${pdf.branchColor};font-family:'Space Mono',monospace;font-weight:700">${pdf.branch}</span>
+        <div style="display:flex;gap:5px">
+          <button onclick="viewPdf('${pdf.id}')" style="padding:5px 11px;border-radius:7px;font-size:11px;cursor:pointer;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.22);color:#00d4ff">View</button>
+          <a href="${pdf.url}" download="${pdf.name}" style="padding:5px 10px;border-radius:7px;font-size:11px;cursor:pointer;background:rgba(20,30,50,0.9);border:1px solid rgba(30,41,59,0.9);color:#64748b;text-decoration:none">↓</a>
+          <button onclick="removePdf('${pdf.id}')" style="padding:5px 10px;border-radius:7px;font-size:11px;cursor:pointer;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.18);color:#f87171">✕</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function viewPdf(id) {
+  const pdf = pdfs.find(p => String(p.id) === String(id));
+  if (!pdf) return;
+  document.getElementById('pdf-modal-name').textContent = pdf.name;
+  document.getElementById('pdf-modal-meta').textContent = `Branch: ${pdf.branch} · ${pdf.size}`;
+  document.getElementById('pdf-iframe').src = pdf.url;
+  document.getElementById('pdf-download-btn').onclick = () => {
+    const a = document.createElement('a'); a.href = pdf.url; a.download = pdf.name; a.click();
+  };
+  document.getElementById('pdf-modal').style.display = 'flex';
+}
+
+function closePdfModal() {
+  document.getElementById('pdf-modal').style.display = 'none';
+  document.getElementById('pdf-iframe').src = '';
+}
+
+function removePdf(id) {
+  const pdf = pdfs.find(p => String(p.id) === String(id));
+  if (pdf) URL.revokeObjectURL(pdf.url);
+  pdfs = pdfs.filter(p => String(p.id) !== String(id));
+  if (pdfFilter !== 'All' && !pdfs.find(p => p.branch === pdfFilter)) pdfFilter = 'All';
+  renderPdfs();
+}
+
+// Drop zone events
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); document.getElementById('drop-icon').textContent = '📥'; document.getElementById('drop-text').textContent = 'Drop PDFs here!'; document.getElementById('drop-text').style.color = '#00d4ff'; });
+dz.addEventListener('dragleave', () => { dz.classList.remove('drag'); document.getElementById('drop-icon').textContent = '📁'; document.getElementById('drop-text').textContent = 'Drag & drop PDFs or click to browse'; document.getElementById('drop-text').style.color = '#94a3b8'; });
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); document.getElementById('drop-icon').textContent = '📁'; document.getElementById('drop-text').textContent = 'Drag & drop PDFs or click to browse'; document.getElementById('drop-text').style.color = '#94a3b8'; handleFiles(e.dataTransfer.files); });
+
+/* ─── INIT ─── */
+document.addEventListener('DOMContentLoaded', () => {
+  buildNav();
+  buildOverview();
+  buildCompanies();
+
+  const loaderBar = document.getElementById('loader-bar');
+  loaderBar.style.cssText += ';animation:fillBar 0.8s ease forwards';
+  setTimeout(() => {
+    document.getElementById('loader').style.opacity = '0';
+    document.getElementById('loader').style.transition = 'opacity 0.4s';
+    setTimeout(() => {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('app').style.opacity = '1';
+    }, 400);
+  }, 900);
+});
+</script>
+</body>
+</html>
