@@ -89,12 +89,6 @@
 
     input:focus, select:focus { outline: none; border-color: rgba(0,212,255,0.4) !important; box-shadow: 0 0 0 2px rgba(0,212,255,0.08); }
     .chart-wrap { width: 100%; position: relative; }
-    .pdf-modal {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(3,7,18,0.97);
-      backdrop-filter: blur(16px);
-      display: flex; flex-direction: column;
-    }
     .section { display: none; }
     .section.active { display: block; }
     .nav-btn {
@@ -114,15 +108,6 @@
     }
     .filter-btn.active {
       background: rgba(0,212,255,0.12); border-color: rgba(0,212,255,0.35); color: #00d4ff;
-    }
-    .drop-zone {
-      border: 2px dashed rgba(0,212,255,0.18); border-radius: 16px; padding: 42px 24px;
-      text-align: center; cursor: pointer; margin-bottom: 22px;
-      background: rgba(10,18,35,0.4); transition: all 0.3s;
-    }
-    .drop-zone.drag {
-      border-color: #00d4ff; background: rgba(0,212,255,0.04);
-      box-shadow: 0 0 40px rgba(0,212,255,0.12);
     }
     @media(max-width:700px){ .hidden-mobile{display:none!important} }
     @media(min-width:701px){ .show-mobile{display:none!important} }
@@ -287,68 +272,6 @@
     <div id="top-packages-list" style="display:flex;flex-direction:column;gap:11px"></div>
   </div>
 
-  <!-- PDFs -->
-  <div id="sec-pdfs" class="section">
-    <div style="margin-bottom:36px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:26px">📄</span>
-          <h2 style="font-size:clamp(22px,3vw,30px);font-weight:800;color:#f1f5f9;letter-spacing:-0.5px">Placement PDFs</h2>
-        </div>
-        <p style="font-size:13px;color:#475569;margin-left:36px">Branch-wise official placement reports</p>
-        <div style="width:52px;height:2px;background:linear-gradient(90deg,#00d4ff,transparent);margin-top:10px;margin-left:36px;border-radius:1px"></div>
-      </div>
-      <!-- Admin login/logout button -->
-      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-        <div id="admin-status" style="display:none;font-size:11px;color:#34d399;font-family:'Space Mono',monospace;padding:4px 10px;border-radius:6px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2)">● ADMIN</div>
-        <button id="admin-toggle-btn" onclick="toggleAdminPanel()" style="padding:7px 14px;border-radius:9px;font-size:12px;cursor:pointer;background:rgba(10,18,35,0.9);border:1px solid rgba(0,212,255,0.18);color:#64748b;font-family:'Syne',sans-serif;font-weight:600;transition:all 0.2s">🔐 Admin</button>
-      </div>
-    </div>
-
-    <!-- Admin login panel (hidden by default) -->
-    <div id="admin-login-panel" style="display:none;margin-bottom:18px">
-      <div class="glass" style="padding:18px 20px;border-radius:12px;border:1px solid rgba(0,212,255,0.15);max-width:360px">
-        <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:12px;letter-spacing:0.5px">ADMIN LOGIN</div>
-        <div style="display:flex;gap:8px">
-          <input id="admin-pass-input" type="password" placeholder="Enter admin password…" onkeydown="if(event.key==='Enter')doAdminLogin()" style="flex:1;padding:9px 13px;border-radius:9px;background:rgba(5,10,20,0.9);border:1px solid rgba(0,212,255,0.18);color:#e2e8f0;font-size:13px;font-family:'Syne',sans-serif"/>
-          <button onclick="doAdminLogin()" style="padding:9px 16px;border-radius:9px;font-size:13px;cursor:pointer;background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.28);color:#00d4ff;font-family:'Syne',sans-serif;font-weight:700">Login</button>
-        </div>
-        <div id="admin-login-err" style="display:none;font-size:11px;color:#f87171;margin-top:8px">❌ Incorrect password</div>
-      </div>
-    </div>
-
-    <!-- Upload zone — only visible to admin -->
-    <div id="admin-upload-zone" style="display:none;margin-bottom:18px">
-      <div class="glass" style="padding:10px 16px;border-radius:10px;margin-bottom:14px;border:1px solid rgba(251,191,36,0.15);display:flex;gap:10px;align-items:center">
-        <span style="font-size:16px">💡</span>
-        <span style="font-size:12px;color:#64748b">Name your PDFs with branch codes for auto-tagging — e.g. <span style="color:#00d4ff;font-family:'Space Mono',monospace">CSE_Placement_2024.pdf</span></span>
-      </div>
-      <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()">
-        <input id="file-input" type="file" accept=".pdf" multiple style="display:none" onchange="handleFiles(this.files)">
-        <div id="drop-icon" style="font-size:44px;margin-bottom:12px">📁</div>
-        <div id="drop-text" style="font-size:16px;font-weight:700;color:#94a3b8;margin-bottom:5px">Drag & drop PDFs or click to browse</div>
-        <div style="font-size:12px;color:#334155">Multiple files supported · Branch auto-detected from filename</div>
-      </div>
-      <!-- Upload progress -->
-      <div id="upload-progress-wrap" style="display:none;margin-top:12px">
-        <div class="glass" style="padding:14px 18px;border-radius:10px;border:1px solid rgba(0,212,255,0.1)">
-          <div id="upload-progress-label" style="font-size:12px;color:#94a3b8;margin-bottom:8px;font-family:'Space Mono',monospace">Uploading…</div>
-          <div style="height:4px;background:rgba(20,30,50,0.9);border-radius:2px;overflow:hidden">
-            <div id="upload-progress-bar" style="height:100%;background:linear-gradient(90deg,#00d4ff,#a78bfa);border-radius:2px;width:0%;transition:width 0.3s ease"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading state -->
-    <div id="pdf-loading" style="text-align:center;padding:40px 20px;color:#334155">
-      <div style="font-size:32px;margin-bottom:10px">⏳</div>
-      <div style="font-size:13px">Loading PDFs…</div>
-    </div>
-
-    <div id="pdf-filter-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
-    <div id="pdf-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px"></div>
-  </div>
 
 </main>
 
@@ -356,20 +279,6 @@
   <div style="font-size:10px;color:#1e293b;font-family:'Space Mono',monospace;letter-spacing:2px">HBTU KANPUR · TRAINING & PLACEMENT CELL · SESSION 2024-25 · DATA FROM OFFICIAL PLACEMENT REPORT</div>
 </footer>
 
-<!-- PDF Viewer Modal -->
-<div id="pdf-modal" class="pdf-modal" style="display:none">
-  <div style="padding:13px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,212,255,0.08);background:rgba(10,18,35,0.98);flex-shrink:0">
-    <div>
-      <div id="pdf-modal-name" style="font-size:13px;font-weight:700;color:#f1f5f9"></div>
-      <div id="pdf-modal-meta" style="font-size:10px;color:#475569;margin-top:2px;font-family:'Space Mono',monospace"></div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button id="pdf-download-btn" style="padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;background:rgba(0,212,255,0.09);border:1px solid rgba(0,212,255,0.2);color:#00d4ff">↓ Download</button>
-      <button onclick="closePdfModal()" style="padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:rgba(239,68,68,0.09);border:1px solid rgba(239,68,68,0.22);color:#f87171">✕ Close</button>
-    </div>
-  </div>
-  <iframe id="pdf-iframe" style="flex:1;border:none;background:#fff" title="PDF Viewer"></iframe>
-</div>
 
 </div><!-- #app -->
 
@@ -534,8 +443,6 @@ const MEDAL_BG = [
   'linear-gradient(135deg,#CD7F32,#B87333)',
 ];
 
-let pdfs = [];
-let pdfFilter = 'All';
 let companyFilter = 'All';
 let chartsInit = false;
 
@@ -546,7 +453,6 @@ const NAV_ITEMS = [
   { label:'Trends',     id:'trends'   },
   { label:'Companies',  id:'companies'},
   { label:'Top Offers', id:'topoffers'},
-  { label:'PDFs',       id:'pdfs'     },
 ];
 
 function buildNav() {
@@ -578,7 +484,6 @@ function switchTab(id) {
   if (id === 'trends') setTimeout(animatePlacementBars, 100);
   if (id === 'branches') renderBranches();
   if (id === 'topoffers') setTimeout(initTopPackages, 60);
-  if (id === 'pdfs') loadPdfsFromSupabase();
 }
 
 function toggleMobileNav() {
@@ -965,255 +870,6 @@ function initTopPackages() {
     list.appendChild(div);
     setTimeout(() => div.classList.add('visible'), i * 70 + 50);
   });
-}
-
-/* ─── SUPABASE CONFIG ─── */
-const SUPABASE_URL = 'https://glwmkdeuaqelqnzljfga.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsd21rZGV1YXFlbHFuemxqZmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzc3MDcsImV4cCI6MjA5NjkxMzcwN30.5yaWVWYRes-hJbXov_UVW9gmOJRCl9x58TriCHwsLWo';
-const BUCKET = 'placement-pdfs';
-const ADMIN_PASS = 'devansh3004#&';
-
-let isAdmin = false;
-
-async function sbFetch(path, opts = {}) {
-  const res = await fetch(SUPABASE_URL + path, {
-    ...opts,
-    headers: {
-      'apikey': SUPABASE_ANON,
-      'Authorization': 'Bearer ' + SUPABASE_ANON,
-      ...(opts.headers || {}),
-    },
-  });
-  return res;
-}
-
-/* ─── ADMIN AUTH ─── */
-function toggleAdminPanel() {
-  if (isAdmin) {
-    // Logout
-    isAdmin = false;
-    document.getElementById('admin-status').style.display = 'none';
-    document.getElementById('admin-upload-zone').style.display = 'none';
-    document.getElementById('admin-login-panel').style.display = 'none';
-    document.getElementById('admin-toggle-btn').textContent = '🔐 Admin';
-    document.getElementById('admin-toggle-btn').style.color = '#64748b';
-    renderPdfs();
-  } else {
-    const panel = document.getElementById('admin-login-panel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    if (panel.style.display === 'block') setTimeout(() => document.getElementById('admin-pass-input').focus(), 50);
-  }
-}
-
-function doAdminLogin() {
-  const val = document.getElementById('admin-pass-input').value;
-  const errEl = document.getElementById('admin-login-err');
-  if (val === ADMIN_PASS) {
-    isAdmin = true;
-    document.getElementById('admin-login-panel').style.display = 'none';
-    document.getElementById('admin-status').style.display = 'inline-block';
-    document.getElementById('admin-upload-zone').style.display = 'block';
-    document.getElementById('admin-toggle-btn').textContent = '🔓 Logout';
-    document.getElementById('admin-toggle-btn').style.color = '#f87171';
-    document.getElementById('admin-pass-input').value = '';
-    errEl.style.display = 'none';
-    // Wire up drop zone now that it's visible
-    initDropZone();
-    renderPdfs();
-  } else {
-    errEl.style.display = 'block';
-    document.getElementById('admin-pass-input').value = '';
-    document.getElementById('admin-pass-input').focus();
-  }
-}
-
-function initDropZone() {
-  const dz = document.getElementById('drop-zone');
-  if (dz._dzInit) return;
-  dz._dzInit = true;
-  dz.addEventListener('dragover', e => {
-    e.preventDefault(); dz.classList.add('drag');
-    document.getElementById('drop-icon').textContent = '📥';
-    document.getElementById('drop-text').textContent = 'Drop PDFs here!';
-    document.getElementById('drop-text').style.color = '#00d4ff';
-  });
-  dz.addEventListener('dragleave', () => {
-    dz.classList.remove('drag');
-    document.getElementById('drop-icon').textContent = '📁';
-    document.getElementById('drop-text').textContent = 'Drag & drop PDFs or click to browse';
-    document.getElementById('drop-text').style.color = '#94a3b8';
-  });
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('drag');
-    document.getElementById('drop-icon').textContent = '📁';
-    document.getElementById('drop-text').textContent = 'Drag & drop PDFs or click to browse';
-    document.getElementById('drop-text').style.color = '#94a3b8';
-    handleFiles(e.dataTransfer.files);
-  });
-}
-
-/* ─── PDF UPLOAD ─── */
-async function handleFiles(files) {
-  if (!isAdmin) return;
-  const arr = Array.from(files).filter(f => f.type === 'application/pdf');
-  if (!arr.length) return;
-
-  const wrap = document.getElementById('upload-progress-wrap');
-  const bar  = document.getElementById('upload-progress-bar');
-  const lbl  = document.getElementById('upload-progress-label');
-  wrap.style.display = 'block';
-
-  for (let i = 0; i < arr.length; i++) {
-    const f = arr[i];
-    lbl.textContent = `Uploading ${i+1}/${arr.length}: ${f.name}`;
-    bar.style.width = Math.round(((i) / arr.length) * 100) + '%';
-
-    const path = f.name; // flat storage
-    const res = await sbFetch(`/storage/v1/object/${BUCKET}/${encodeURIComponent(path)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
-      body: f,
-    });
-
-    if (!res.ok) {
-      const txt = await res.text();
-      lbl.textContent = `❌ Failed: ${f.name} — ${txt}`;
-      bar.style.background = 'linear-gradient(90deg,#f87171,#ef4444)';
-      await new Promise(r => setTimeout(r, 2500));
-      bar.style.background = 'linear-gradient(90deg,#00d4ff,#a78bfa)';
-    }
-  }
-
-  bar.style.width = '100%';
-  lbl.textContent = `✅ Done! ${arr.length} file${arr.length>1?'s':''} uploaded.`;
-  setTimeout(() => { wrap.style.display = 'none'; bar.style.width = '0%'; }, 2500);
-
-  await loadPdfsFromSupabase();
-}
-
-/* ─── LOAD PDFs FROM SUPABASE ─── */
-async function loadPdfsFromSupabase() {
-  document.getElementById('pdf-loading').style.display = 'block';
-  try {
-    const res = await sbFetch(`/storage/v1/object/list/${BUCKET}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prefix: '', limit: 200, offset: 0, sortBy: { column: 'created_at', order: 'desc' } }),
-    });
-    const files = await res.json();
-
-    pdfs = [];
-    if (Array.isArray(files)) {
-      files.filter(f => f.name && f.name.endsWith('.pdf')).forEach(f => {
-        const branchMatch = BRANCHES.find(b =>
-          f.name.toUpperCase().includes(b.name) ||
-          f.name.toUpperCase().includes(b.fullName.toUpperCase().slice(0,4))
-        );
-        const sizeMB = f.metadata?.size ? (f.metadata.size / 1024 / 1024).toFixed(2) + ' MB' : '—';
-        const dateStr = f.created_at
-          ? new Date(f.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})
-          : '—';
-        pdfs.push({
-          id: f.id || f.name,
-          name: f.name,
-          path: f.name,
-          url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${encodeURIComponent(f.name)}`,
-          branch: branchMatch?.name || 'General',
-          branchColor: branchMatch?.color || '#64748b',
-          size: sizeMB,
-          date: dateStr,
-        });
-      });
-    }
-  } catch(e) {
-    console.error('Supabase load error:', e);
-  }
-  document.getElementById('pdf-loading').style.display = 'none';
-  renderPdfs();
-}
-
-/* ─── DELETE PDF (admin only) ─── */
-async function deletePdfFromSupabase(path, id) {
-  if (!isAdmin) return;
-  if (!confirm(`Delete "${path}"?`)) return;
-  await sbFetch(`/storage/v1/object/${BUCKET}`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefixes: [path] }),
-  });
-  pdfs = pdfs.filter(p => p.id !== id);
-  if (pdfFilter !== 'All' && !pdfs.find(p => p.branch === pdfFilter)) pdfFilter = 'All';
-  renderPdfs();
-}
-
-/* ─── RENDER PDFs ─── */
-function renderPdfs() {
-  const tabs = document.getElementById('pdf-filter-tabs');
-  const grid = document.getElementById('pdf-grid');
-  const filterBranches = ['All', ...new Set(pdfs.map(p => p.branch))];
-
-  tabs.innerHTML = '';
-  if (pdfs.length) {
-    filterBranches.forEach(b => {
-      const btn = document.createElement('button');
-      btn.className = 'filter-btn' + (b === pdfFilter ? ' active' : '');
-      btn.textContent = b;
-      btn.onclick = () => { pdfFilter = b; renderPdfs(); };
-      tabs.appendChild(btn);
-    });
-  }
-
-  const visible = pdfFilter === 'All' ? pdfs : pdfs.filter(p => p.branch === pdfFilter);
-  if (!visible.length) {
-    grid.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#1e293b;grid-column:1/-1">
-      <div style="font-size:56px;margin-bottom:14px">📂</div>
-      <div style="font-size:15px;color:#334155">No PDFs uploaded yet</div>
-      <div style="font-size:12px;color:#1e293b;margin-top:6px">Upload branch-wise placement reports to view them here</div>
-    </div>`;
-    return;
-  }
-
-  grid.innerHTML = '';
-  visible.forEach(pdf => {
-    const div = document.createElement('div');
-    div.className = 'glass card-hover';
-    div.style.cssText = `padding:16px 18px;border-radius:13px;border:1px solid ${pdf.branchColor}1a;display:flex;flex-direction:column;gap:10px`;
-    div.innerHTML = `
-      <div style="display:flex;gap:11px;align-items:flex-start">
-        <div style="font-size:32px;flex-shrink:0;margin-top:2px">📄</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;color:#e2e8f0;word-break:break-word;line-height:1.35">${pdf.name}</div>
-          <div style="font-size:10px;color:#334155;margin-top:5px;font-family:'Space Mono',monospace">${pdf.size} · ${pdf.date}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:7px;align-items:center;justify-content:space-between">
-        <span style="padding:3px 9px;border-radius:6px;background:${pdf.branchColor}12;border:1px solid ${pdf.branchColor}28;font-size:10px;color:${pdf.branchColor};font-family:'Space Mono',monospace;font-weight:700">${pdf.branch}</span>
-        <div style="display:flex;gap:5px">
-          <button onclick="viewPdf('${pdf.id}')" style="padding:5px 11px;border-radius:7px;font-size:11px;cursor:pointer;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.22);color:#00d4ff">View</button>
-          <a href="${pdf.url}" download="${pdf.name}" target="_blank" style="padding:5px 10px;border-radius:7px;font-size:11px;cursor:pointer;background:rgba(20,30,50,0.9);border:1px solid rgba(30,41,59,0.9);color:#64748b;text-decoration:none">↓</a>
-          ${isAdmin ? `<button onclick="deletePdfFromSupabase('${pdf.path}','${pdf.id}')" style="padding:5px 10px;border-radius:7px;font-size:11px;cursor:pointer;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.18);color:#f87171">✕</button>` : ''}
-        </div>
-      </div>
-    `;
-    grid.appendChild(div);
-  });
-}
-
-function viewPdf(id) {
-  const pdf = pdfs.find(p => String(p.id) === String(id));
-  if (!pdf) return;
-  document.getElementById('pdf-modal-name').textContent = pdf.name;
-  document.getElementById('pdf-modal-meta').textContent = `Branch: ${pdf.branch} · ${pdf.size}`;
-  document.getElementById('pdf-iframe').src = pdf.url;
-  document.getElementById('pdf-download-btn').onclick = () => {
-    const a = document.createElement('a'); a.href = pdf.url; a.download = pdf.name; a.target = '_blank'; a.click();
-  };
-  document.getElementById('pdf-modal').style.display = 'flex';
-}
-
-function closePdfModal() {
-  document.getElementById('pdf-modal').style.display = 'none';
-  document.getElementById('pdf-iframe').src = '';
 }
 
 /* ─── INIT ─── */
